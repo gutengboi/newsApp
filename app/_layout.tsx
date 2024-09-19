@@ -1,37 +1,35 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
-import { useFonts } from 'expo-font';
-import { Stack } from 'expo-router';
-import * as SplashScreen from 'expo-splash-screen';
-import { useEffect } from 'react';
-import 'react-native-reanimated';
+import "react-native-reanimated";
+import StackNavigator from "@/navigation/StackNavigator";
+import { Provider } from "react-redux";
+import { Provider as PaperProvider } from "react-native-paper";
 
-import { useColorScheme } from '@/hooks/useColorScheme';
+import { SQLiteDatabase, SQLiteProvider } from "expo-sqlite";
+import store from "@/redux/store";
 
-// Prevent the splash screen from auto-hiding before asset loading is complete.
-SplashScreen.preventAutoHideAsync();
+const initializeDatabase = async (db: SQLiteDatabase) => {
+  try {
+    await db.execAsync(`
+          PRAGMA journal_mode = WAL;
+          CREATE TABLE IF NOT EXISTS users (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              username TEXT UNIQUE,
+              password TEXT
+          );
+      `);
+    console.log("Database initialized !");
+  } catch (error) {
+    console.log("Error while initializing the database : ", error);
+  }
+};
 
 export default function RootLayout() {
-  const colorScheme = useColorScheme();
-  const [loaded] = useFonts({
-    SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
-  });
-
-  useEffect(() => {
-    if (loaded) {
-      SplashScreen.hideAsync();
-    }
-  }, [loaded]);
-
-  if (!loaded) {
-    return null;
-  }
-
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="+not-found" />
-      </Stack>
-    </ThemeProvider>
+    <SQLiteProvider databaseName="auth.db" onInit={initializeDatabase}>
+      <Provider store={store}>
+        <PaperProvider>
+          <StackNavigator />
+        </PaperProvider>
+      </Provider>
+    </SQLiteProvider>
   );
 }
